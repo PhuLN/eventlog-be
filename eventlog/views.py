@@ -32,10 +32,18 @@ class RegisterUsers(generics.CreateAPIView):
       password = user["password"],
       email = user["email"]
     )
-    return Response(
-      data = serializers.UserSerializer(user).data,
-      status = status.HTTP_201_CREATED
-    )
+
+    login(request, user)
+    serializer = serializers.TokenSerializer(data = {
+      "token": jwt_encode_handler(jwt_payload_handler(user))
+    })
+
+    serializer.is_valid()
+
+    return Response({
+      'user': serializers.UserSerializer(user).data,
+      'token': serializer.data
+    })
 
 # POST /api/v1/auth/login
 class LoginView(generics.CreateAPIView):
@@ -43,21 +51,24 @@ class LoginView(generics.CreateAPIView):
   queryset = User.objects.all()
 
   def post(self, request, *args, **kwargs):
-    username = request.data.get("username", "")
-    password = request.data.get("password", "")
+    data = request.data.get("user")
+    username = data["username"]
+    password = data["password"]
     
     user = authenticate(request, username = username, password = password)
 
     if user is not None:
       login(request, user)
-      serializer = serializers.TokenSerializer(
-        data = {
-          "token": jwt_encode_handler(jwt_payload_handler(user))
-        }
-      )
+      serializer = serializers.TokenSerializer(data = {
+        "token": jwt_encode_handler(jwt_payload_handler(user))
+      })
       serializer.is_valid()
-      return Response(serializer.data)
+      return Response({
+        'user': serializers.UserSerializer(user).data,
+        'token': serializer.data
+      })
     return Response(status = status.HTTP_401_UNAUTHORIZED)
+
 
 # GET /api/v1/events
 class ListEventsView(generics.ListAPIView):
