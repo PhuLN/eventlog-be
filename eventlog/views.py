@@ -20,19 +20,17 @@ jwt_encode_handler = api_settings.JWT_ENCODE_HANDLER
 class RegisterUsers(generics.CreateAPIView):
   permission_classes = (permissions.AllowAny, )
   def post(self, request, *args, **kwargs):
-    username = request.data.get("username", "")
-    password = request.data.get("password", "")
-    email = request.data.get("email", "")
+    user = request.data.get("user")
 
-    if not username and not password and not email:
+    if not user["username"] and not user["password"] and not user["email"]:
       return Response(data = {
         "message": "Username, password and email are required"
       }, status = status.HTTP_400_BAD_REQUEST)
     
     user = User.objects.create_user(
-      username = username,
-      password = password,
-      email = email
+      username = user["username"],
+      password = user["password"],
+      email = user["email"]
     )
     return Response(
       data = serializers.UserSerializer(user).data,
